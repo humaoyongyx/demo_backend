@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.config.MyConfig;
 import com.example.demo.interceptor.JsonInterceptor;
 import com.example.demo.resolver.JsonRequestResolver;
 import com.example.demo.wrapper.HttpServletRequestJsonFilter;
@@ -25,32 +26,48 @@ public class WebMVCConfigs extends WebMvcConfigurerAdapter {
     @Autowired
     JsonRequestResolver jsonRequestResolver;
 
+    @Autowired
+    MyConfig myConfig;
+
     @Bean
     public FilterRegistrationBean filterRegistrationBean() {
+
         FilterRegistrationBean registrationBean = new FilterRegistrationBean();
         HttpServletRequestJsonFilter filter = new HttpServletRequestJsonFilter();
+
         registrationBean.setFilter(filter);
         registrationBean.setName("jsonFilter");
         List<String> urlPatterns = new ArrayList<String>();
-        urlPatterns.add("/*");
+        if (myConfig.isJsonConvert()) {
+            urlPatterns.add("/*");
+        } else {
+            urlPatterns.add("/_x_");
+        }
         registrationBean.setUrlPatterns(urlPatterns);
+
         return registrationBean;
+
+
     }
 
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
 
+        if (myConfig.isJsonConvert()) {
+            registry.addInterceptor(jsonInterceptor)
+                    .excludePathPatterns("/ex/**")
+                    .addPathPatterns("/**");
 
-        registry.addInterceptor(jsonInterceptor)
-                .excludePathPatterns("/ex/**")
-                .addPathPatterns("/**");
+        }
 
 
     }
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-        argumentResolvers.add(jsonRequestResolver);
+        if (myConfig.isJsonConvert()) {
+            argumentResolvers.add(jsonRequestResolver);
+        }
     }
 }

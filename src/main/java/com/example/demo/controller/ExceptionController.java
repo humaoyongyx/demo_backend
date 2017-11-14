@@ -7,11 +7,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("ex")
+@ResponseBody
 public class ExceptionController {
 
     @RequestMapping
-    @ResponseBody
-    public Object ex(){
-      return Resp.FAIL;
+    public Object ex() {
+        return Resp.FAIL;
+    }
+
+    @RequestMapping("signError")
+    public Object signError() {
+        return Resp.fail("签名错误");
     }
 }

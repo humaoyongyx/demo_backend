@@ -15,6 +15,10 @@ public class Resp {
     public Resp() {
     }
 
+    public static Resp fail(String msg){
+        return  new Resp(0,msg);
+    }
+
     public Resp(int code, String msg) {
         this.code = code;
         this.msg = msg;
