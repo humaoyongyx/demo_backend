@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>测试页面</title>
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <!--[if lt IE 9]>
+    <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <link href="/css/jquery-ui.min.css" rel="stylesheet" type="text/css" />
+    <link href="/css/jquery-ui-timepicker-addon.css" rel="stylesheet" type="text/css" />
+    <link href="/css/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+
+
+
+</head>
+
+
+
+<body>
+<div class="container-fluid">
+    <center>
+        <h3>测试页面</h3>
+    </center>
+
+<form id="myForm">
+    <table class="table table-bordered">
+        <tbody>
+        <tr>
+            <td class="col-xs-6 col-sm-6 col-md-6">
+                <label for="startDate" class="col-xs-6 col-sm-6 col-md-6">开始日期</label>
+                <input type="text"  id="startDate" name="startDate" class="col-xs-6 col-sm-6 col-md-6" placeholder="" required>
+              </td>
+            <td class="col-xs-6 col-sm-6 col-md-6">
+                <label for="endDate" class="col-xs-6 col-sm-6 col-md-6">结束日期</label>
+                <input type="text"  id="endDate"  name="endDate"  class="col-xs-6 col-sm-6 col-md-6" placeholder="" required>
+            </td>
+
+        </tr>
+
+        <tr>
+            <td class="col-xs-6 col-sm-6 col-md-6">
+                <label for="applicationType" class="col-xs-6 col-sm-6 col-md-6">申请类别</label>
+                <select id="applicationType" name="applicationType" class="col-xs-6 col-sm-6 col-md-6">
+                    <option value ="">请选择类型</option>
+                    <option value ="0">类型0</option>
+                    <option value ="1">类型1</option>
+                    <option value="2">类型2</option>
+                    <option value="3">其他</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td class="col-md-12" colspan="2">
+                <input type="button" class="btn btn-success" value="查询" onclick="query()" />&nbsp;
+                <input type="button" class="btn btn-success" value="重置" onclick="reset()" />&nbsp;
+
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div>
+        <table class="table table-bordered" style="display: none" id="data">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>姓名</th>
+            </tr>
+            </thead>
+
+        </table>
+
+    </div>
+
+    ​
+</form>
+
+
+
+
+
+</div>
+
+
+
+<script src="/js/jquery-1.11.3.min.js"></script>
+<script src="/bootstrap/js/bootstrap.min.js"></script>
+<script src="/js/jquery-ui.min.js"></script>
+<script src="/js/jquery-ui-timepicker-addon.js"></script>
+<script src="/js/jquery.dataTables.min.js"></script>
+<script src="/js/init.js"></script>
+
+
+<script>
+
+    $("#startDate").datepicker();
+    $("#endDate").datepicker();
+
+    $(document).ready(function() {
+
+    });
+
+
+    function initDataTable(){
+        $("#data").show();
+        dTable=	$('#data').DataTableServer({
+            "ajax": {
+                "url":"/dataTable/get",
+                "data":function(data){
+
+
+                }
+            },
+            "columnDefs" : [ {
+                "name": "id",
+                "data":"id",
+                "targets" : [ 0 ]
+            },{
+                "name": "name",
+                "data":"name",
+                "targets" : [ 1 ]
+
+            }
+            ]
+
+        });
+
+    }
+    dTable=null;
+    function query() {
+        if(!dTable){
+            initDataTable();
+        }
+        dTable.ajax.reload();
+    }
+
+    function reset() {
+        $("#myForm").reset();
+    }
+
+
+
+</script>
+
+
+</body>
+</html>

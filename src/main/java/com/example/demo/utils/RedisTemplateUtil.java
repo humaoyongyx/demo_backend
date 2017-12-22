@@ -149,17 +149,17 @@ public class RedisTemplateUtil {
         }
         String currentValueStr = get(lockKey); // redis里的时间
         Date date = new Date();
-        System.out.println("current time :"+ date.toLocaleString()+Thread.currentThread().toString()+date.getTime());
-        System.out.println("redis will expire time :"+new Date(Long.parseLong(currentValueStr)).toLocaleString()+Thread.currentThread().toString()+currentValueStr);
+     //   System.out.println("current time :"+ date.toLocaleString()+Thread.currentThread().toString()+date.getTime());
+     //   System.out.println("redis will expire time :"+new Date(Long.parseLong(currentValueStr)).toLocaleString()+Thread.currentThread().toString()+currentValueStr);
         if (StringUtils.isNotEmpty(currentValueStr)
                 && Long.parseLong(currentValueStr) < System.currentTimeMillis()) {// 其他线程获取的锁超时
             // 获取上一个锁到期时间，并设置现在的锁到期时间
             // 只有一个线程才能获取上一个线上的设置时间，因为jedis.getSet是同步的
             String oldValueStr = getset(lockKey, expiresStr);
-            System.out.println("redis oldValueStr time :"+new Date(Long.parseLong(currentValueStr)).toLocaleString()+Thread.currentThread().toString()+currentValueStr);
+        //    System.out.println("redis oldValueStr time :"+new Date(Long.parseLong(currentValueStr)).toLocaleString()+Thread.currentThread().toString()+currentValueStr);
             if (StringUtils.isNotEmpty(oldValueStr) && oldValueStr.equals(currentValueStr)) {
                 // 如果多个线程恰好都到了这里，但是只有一个线程的设置值和当前值相同，他才有权利获取锁
-                System.out.println("true"+Thread.currentThread().toString());
+           //     System.out.println("true"+Thread.currentThread().toString());
                 return true;
             }
         }
