@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class MyConfig {
 
     private boolean jsonConvert=true;
-    private boolean enableSign=true;
+    private boolean enableSign=false;
 
     public boolean isJsonConvert() {
         return jsonConvert;

@@ -10,9 +10,10 @@ public class JsonTest extends BaseAbstractTest{
 
     @Test
     public void test() {
+        post("/testJson", add("name", "xxx").add("id", "123").toMap());
 
 
-        post("/testJson", add("name", "xxx").add("id", "123").toMap(),true);
+       // post("/testJson", add("name", "xxx").add("id", "123").toMap(),true);
 
     }
 
