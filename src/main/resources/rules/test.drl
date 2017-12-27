@@ -1,0 +1,12 @@
+package rules;
+
+import com.example.demo.droolsBean.TestBean;
+
+rule "this is for test"
+    timer (int:1s 2s)
+when
+
+then
+  System.out.println("this is for test!");
+
+end
