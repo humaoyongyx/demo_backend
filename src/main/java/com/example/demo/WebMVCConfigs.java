@@ -35,6 +35,7 @@ public class WebMVCConfigs extends WebMvcConfigurerAdapter {
     MyConfig myConfig;
 
 
+
     @Bean
     public HttpMessageConverters fastJsonHttpMessageConverters() {
         FastJsonHttpMessageConverter fastConverter = new FastJsonHttpMessageConverter();
