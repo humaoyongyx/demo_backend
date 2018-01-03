@@ -32,5 +32,13 @@ public class TestDroolController {
 
     }
 
+    @RequestMapping("drools2")
+    public void test2(){
+        droolsService.test2();
+
+    }
+
+
+
 
 }

@@ -1,7 +1,7 @@
 package com.example.demo.service;
 
+import com.example.demo.droolsBean.UserBean;
 import jodd.io.StreamUtil;
-import org.drools.core.impl.StatefulKnowledgeSessionImpl;
 import org.kie.api.KieBase;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
@@ -9,13 +9,13 @@ import org.kie.api.builder.KieFileSystem;
 import org.kie.api.builder.Results;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,11 +27,14 @@ public class DroolsService {
 
     private Map<String,KieSession>  kieSessionCacheMap= new ConcurrentHashMap<>();
     private Map<String,KieContainer> kieContainerCacheMap =new ConcurrentHashMap<>();
+    private static final  String default_rule_package="src/main/resources/rules/";
+
+    private static final Logger LOGGER= LoggerFactory.getLogger(DroolsService.class);
 
     public synchronized KieSession getKieSession(String ruleName,String rule) {
         KieServices kieServices = KieServices.Factory.get();
         KieFileSystem kfs = kieServices.newKieFileSystem();
-        kfs.write("src/main/resources/rules/"+ruleName+".drl", rule);
+        kfs.write(default_rule_package+ruleName+".drl", rule);
         KieBuilder kieBuilder = kieServices.newKieBuilder(kfs).buildAll();
         Results results = kieBuilder.getResults();
         if (results.hasMessages(org.kie.api.builder.Message.Level.ERROR)) {
@@ -41,7 +44,7 @@ public class DroolsService {
         KieContainer kieContainer = kieServices.newKieContainer(kieServices.getRepository().getDefaultReleaseId());
         KieBase kieBase = kieContainer.getKieBase();
         KieSession kieSession = kieBase.newKieSession();
-        handleKieSession(ruleName,kieSession);
+      //  handleKieSession(ruleName,kieSession);
         handleKieContainer(ruleName,kieContainer);
         return kieSession;
     }
@@ -53,7 +56,6 @@ public class DroolsService {
             _kieSession.halt();
             _kieSession.destroy();
             kieSessionCacheMap.put(ruleName,kieSession);
-            //((StatefulKnowledgeSessionImpl)_kieSession).halt();
         }else {
             System.out.println("null--------------------");
             kieSessionCacheMap.put(ruleName,kieSession);
@@ -102,8 +104,29 @@ public class DroolsService {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println(fileStringWriter.toString());
         return fileStringWriter.toString();
     }
 
+    public static void out(){
+        LOGGER.info("out....");
+        System.out.println("out2...");
+  }
+
+
+    public void test2(){
+        String drl1 = DroolsService.getClasspathFile("rules/test2.drl");
+        KieSession kieSession = getKieSession("test", drl1);
+        UserBean userBean=new UserBean();
+        userBean.setName("testName");
+        userBean.setAge(23);
+        kieSession.insert(userBean);
+        kieSession.fireAllRules();
+       // kieSession.dispose();
+    }
+
+    public static void main(String[] args) {
+        System.out.println(UserBean.class.getName());
+    }
 
 }

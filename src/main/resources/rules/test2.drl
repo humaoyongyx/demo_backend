@@ -3,10 +3,14 @@ package rules;
 import com.example.demo.droolsBean.UserBean;
 import static com.example.demo.service.DroolsService.out;
 
+
 rule "_auto_"
+ dialect "mvel"
+
 when
-    $user:UserBean()
+    $user:UserBean(age>20);
+
 then
-    System.out.println(":your age >20");
-    out();
+    System.out.println(":your age >20"+$user.getName());
+out();
 end

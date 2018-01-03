@@ -1,9 +1,11 @@
 package com.example.demo.droolsBean;
 
+import java.io.Serializable;
+
 /**
  * Created by issac.hu on 2017/12/28.
  */
-public class UserBean {
+public class UserBean implements Serializable{
 
     private Integer id;
     private String name;
@@ -31,5 +33,14 @@ public class UserBean {
 
     public void setAge(Integer age) {
         this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return "UserBean{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", age=" + age +
+                '}';
     }
 }

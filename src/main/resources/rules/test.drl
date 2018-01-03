@@ -3,7 +3,7 @@ package rules;
 import com.example.demo.droolsBean.TestBean;
 
 rule "this is for test"
-    timer (int:1s 2s)
+    timer (cron:0/1 * * * * ? 2017)
 when
 
 then
