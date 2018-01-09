@@ -10,6 +10,7 @@ public class UserBean {
 
     public UserBean(){}
 
+
     public UserBean(String id, String name) {
         this.id = id;
         this.name = name;
