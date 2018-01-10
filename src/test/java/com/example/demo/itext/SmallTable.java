@@ -1,7 +1,6 @@
 package com.example.demo.itext;
 
 import com.itextpdf.text.*;
-import com.itextpdf.text.Font.FontFamily;
 import com.itextpdf.text.pdf.*;
 
 import java.io.File;
@@ -13,6 +12,7 @@ import java.io.IOException;
  */
 public class SmallTable {
     public static final String DEST = "D:/test/pdf/test/small_table.pdf";
+    public static final String FONT = "C:\\Windows\\Fonts\\msyh.ttf";
  
     public static void main(String[] args) throws IOException, DocumentException {
         File file = new File(DEST);
@@ -21,7 +21,8 @@ public class SmallTable {
     }
     public void createPdf(String dest) throws IOException, DocumentException {
         Rectangle small = new Rectangle(400,200);
-        Font smallfont = new Font(FontFamily.HELVETICA, 10);
+       // Font smallfont = new Font(FontFamily.HELVETICA, 10);
+        Font smallfont = FontFactory.getFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
         Document document = new Document(small, 5, 5, 5, 5);
         PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(dest));
         document.open();
@@ -30,14 +31,14 @@ public class SmallTable {
         table.setLockedWidth(true);
         PdfContentByte cb = writer.getDirectContent();
         // first row
-        PdfPCell cell = new PdfPCell(new Phrase("Some text here"));
+        PdfPCell cell = new PdfPCell(new Phrase("Some text here 是否"));
         cell.setFixedHeight(30);
         cell.setBorderWidth(1);
         cell.setBorderColor(BaseColor.GREEN);
        // cell.setColspan(2);
         table.addCell(cell);
         // second row
-        cell = new PdfPCell(new Phrase("Some more text", smallfont));
+        cell = new PdfPCell(new Phrase("Some more textsdfs撒地方", smallfont));
         cell.setFixedHeight(30);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cell.setBorder(Rectangle.NO_BORDER);
