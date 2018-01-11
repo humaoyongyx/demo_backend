@@ -37,7 +37,10 @@ public class TestFtlController {
     }
 
 
-
+    @RequestMapping("testCN")
+    public String testCN(){
+      return "ftl/testCN";
+    }
 
 
 

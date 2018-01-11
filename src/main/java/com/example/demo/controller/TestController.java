@@ -1,19 +1,15 @@
 package com.example.demo.controller;
 
-import com.example.demo.bean.Address;
-import com.example.demo.bean.AddressCheckResult;
+import com.alibaba.fastjson.JSON;
 import com.example.demo.bean.UserBean;
 import com.example.demo.utils.RedisTemplateUtil;
-import org.kie.api.runtime.KieSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import sun.util.calendar.BaseCalendar;
 
-import javax.annotation.Resource;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -105,6 +101,13 @@ public class TestController {
         }
 
         return "xxx";
+    }
+
+    @RequestMapping("testCN")
+    public String receiveChineseCode(String name,UserBean userBean){
+        System.out.println(name);
+        System.out.println(JSON.toJSONString(userBean));
+        return name;
     }
 
 
