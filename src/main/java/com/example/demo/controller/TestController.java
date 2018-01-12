@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -104,7 +105,8 @@ public class TestController {
     }
 
     @RequestMapping("testCN")
-    public String receiveChineseCode(String name,UserBean userBean){
+    public String receiveChineseCode(String name, UserBean userBean, HttpServletRequest request){
+        System.out.println(request.getAttribute("name"));
         System.out.println(name);
         System.out.println(JSON.toJSONString(userBean));
         return name;
