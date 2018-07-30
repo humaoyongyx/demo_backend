@@ -1,12 +1,15 @@
 package com.example.demo.utils;
 
-import org.apache.commons.lang3.StringUtils;
+import com.alibaba.fastjson.JSON;
 import org.apache.poi.hssf.usermodel.HSSFRichTextString;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.NumberToTextConverter;
-import org.apache.poi.xssf.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -120,9 +123,9 @@ public class ExcelUtils {
 				CellStyle cellStyle = header.get(i).getHeadCellStyle();
 				Integer width = header.get(i).getWidth();
 				if (headName != null) {
-					headRow.setCellValue(StringUtils.capitalize(headName));
+					headRow.setCellValue(capitalize(headName));
 				} else {
-					headRow.setCellValue(StringUtils.capitalize(fieldName));
+					headRow.setCellValue(capitalize(fieldName));
 				}
 				if (cellStyle != null) {
 					headRow.setCellStyle(cellStyle);
@@ -143,7 +146,7 @@ public class ExcelUtils {
 					Field field = declaredFields[i];
 					Cell headRow = headerRow.createCell(i);
 					String headName = field.getName();
-					headRow.setCellValue(StringUtils.capitalize(headName));
+					headRow.setCellValue(capitalize(headName));
 					headRow.setCellStyle(getDefaultHeadStyle(wb));
 					sheet.setColumnWidth(i, 20 * 256);
 				}
@@ -203,7 +206,7 @@ public class ExcelUtils {
 				E o = data.get(i);
 				Class<?> cls = o.getClass();
 				for (int j = 0; j < fieldNames.length; j++) {
-					String fieldName = StringUtils.capitalize(fieldNames[j]);
+					String fieldName = capitalize(fieldNames[j]);
 					Method getMethod = cls.getMethod("get" + fieldName);
 					Object value = getMethod.invoke(o);
 					if (value != null) {
@@ -223,8 +226,8 @@ public class ExcelUtils {
 							bodyCell.setCellValue((Double) value);
 						} else if (value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Float) {
 							bodyCell.setCellValue(Double.parseDouble(value.toString()));
-						} else if (value instanceof HSSFRichTextString) {
-							bodyCell.setCellValue((HSSFRichTextString) value);
+						} else if (value instanceof RichTextString) {
+							bodyCell.setCellValue((RichTextString) value);
 						} else {
 							bodyCell.setCellStyle(cellStyle);
 							bodyCell.setCellType(XSSFCell.CELL_TYPE_STRING);
@@ -275,6 +278,163 @@ public class ExcelUtils {
 	private static final SimpleDateFormat sdf_import = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	private static final SimpleDateFormat sdf_default = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+
+	public static  interface ImportListHandler{
+	   void	handle(List<InnerExcelBean> source);
+	}
+
+
+	private static void writeToOutputStream( OutputStream outputStream, Workbook wb) {
+		try {
+			wb.write(outputStream);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (outputStream != null) {
+				try {
+					outputStream.flush();
+					outputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+
+	private static <T> void overWriteWorkbook(List<ExcelImportSetting> excelImportSettings, char[] lines, List<T> data, Sheet sheet) {
+		try {
+			for (int i = 0; i < data.size(); i++) {
+				Row contentRow = sheet.getRow(i+1);
+				if (contentRow==null){
+					contentRow=sheet.createRow(i+1);
+				}
+				// 获取每一个对象
+				T o = data.get(i);
+				Class<?> cls = o.getClass();
+
+				if (lines==null){
+					lines=new char[26];
+					for (int ii=(int)'A';ii<=(int)'Z';ii++) {
+					   lines[ii-65]=(char)ii;
+					}
+				}
+				for (char line:lines) {
+
+					int j=(int)line-65;
+					if (excelImportSettings.get(j)==null)
+						continue;
+					String fieldName = capitalize(excelImportSettings.get(j).getFieldName());
+					Method getMethod = cls.getMethod("get" + fieldName);
+					Object value = getMethod.invoke(o);
+					if (value != null) {
+						Cell bodyCell = contentRow.getCell(j);
+						if (bodyCell==null){
+							bodyCell=contentRow.createCell(j);
+						}
+
+						if (value instanceof String) {
+							bodyCell.setCellValue((String) value);
+						} else if (value instanceof Boolean) {
+							bodyCell.setCellValue((Boolean) value);
+						} else if (value instanceof Calendar) {
+							bodyCell.setCellValue((Calendar) value);
+						} else if (value instanceof Double) {
+							bodyCell.setCellValue((Double) value);
+						} else if (value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Float) {
+							bodyCell.setCellValue(Double.parseDouble(value.toString()));
+						} else if (value instanceof HSSFRichTextString) {
+							bodyCell.setCellValue((HSSFRichTextString) value);
+						} else {
+							bodyCell.setCellValue(value.toString());
+						}
+					}
+				}
+			}
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static List<InnerExcelBean> importAndSaveExcel(File file,char[] lines,ImportListHandler handler,boolean... save) {
+		boolean isSave=true;
+		if (save!=null&&save.length>0){
+			isSave=save[0];
+		}
+		Workbook workbook = null;
+		List<ExcelImportSetting> headers=new LinkedList<>();
+		for (int i=(int)'A';i<=(int)'Z';i++) {
+			ExcelImportSetting setting=new ExcelImportSetting();
+			setting.setFieldName("f"+((char)i));
+			headers.add(setting);
+		}
+		InputStream inputStream=null;
+		OutputStream outputStream=null;
+		try {
+			 inputStream=new FileInputStream(file);
+			 workbook= getWorkBook(inputStream);
+			if (isSave) {
+				outputStream = new FileOutputStream(file);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+
+		List<InnerExcelBean> innerExcelBeans = importExcel(workbook, headers, InnerExcelBean.class, 1, 0);
+		if (handler!=null){
+			handler.handle(innerExcelBeans);
+		}
+		if (isSave){
+			overWriteWorkbook(headers,null,innerExcelBeans,workbook.getSheetAt(0));
+			writeToOutputStream(outputStream,workbook);
+		}
+		return innerExcelBeans;
+
+	}
+
+
+	public static List<InnerExcelBean> importAndSaveExcel(InputStream inputStream, OutputStream outputStream,char[] lines,ImportListHandler handler,boolean... save) {
+		boolean isSave=true;
+		if (save!=null&&save.length>0){
+			isSave=save[0];
+		}
+
+		Workbook workbook = null;
+		List<ExcelImportSetting> headers=new LinkedList<>();
+		for (int i=(int)'A';i<=(int)'Z';i++) {
+			ExcelImportSetting setting=new ExcelImportSetting();
+			setting.setFieldName("f"+((char)i));
+			headers.add(setting);
+		}
+		try {
+			workbook= getWorkBook(inputStream);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		List<InnerExcelBean> innerExcelBeans = importExcel(workbook, headers, InnerExcelBean.class, 1, 0);
+		if (handler!=null){
+			handler.handle(innerExcelBeans);
+		}
+		if (isSave){
+			overWriteWorkbook(headers,null,innerExcelBeans,workbook.getSheetAt(0));
+			writeToOutputStream(outputStream,workbook);
+		}
+
+		return innerExcelBeans;
+
+	}
+
+
 	public static <T> List<T> importExcel(String[] fieldNames, InputStream inputStream, Class<T> clazz) {
 		Workbook workbook = null;
 		List<ExcelImportSetting> headers=new LinkedList<>();
@@ -284,8 +444,8 @@ public class ExcelUtils {
         	 headers.add(setting);
 		}
 		try {
-			workbook = new XSSFWorkbook(inputStream);
-		} catch (IOException e) {
+			 workbook= getWorkBook(inputStream);
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
@@ -293,15 +453,33 @@ public class ExcelUtils {
 
 	}
 
+
+
 	public static <T> List<T> importExcel(InputStream inputStream, List<ExcelImportSetting> headers, Class<T> clazz) {
 		Workbook workbook = null;
 		try {
-			workbook = new XSSFWorkbook(inputStream);
-		} catch (IOException e) {
+			workbook = getWorkBook(inputStream);
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return importExcel(workbook, headers, clazz, 1, 0);
 
+	}
+
+
+	private static Workbook getWorkBook(InputStream inputStream) throws IOException, InvalidFormatException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		byte[] buffer = new byte[1024];
+
+		int len;
+		while((len = inputStream.read(buffer)) > -1) {
+			baos.write(buffer, 0, len);
+		}
+
+		baos.flush();
+		inputStream.close();
+		InputStream buffInputStream = new ByteArrayInputStream(baos.toByteArray());
+		return WorkbookFactory.create(buffInputStream);
 	}
 
 	private static InputStream getBuffInputStream(InputStream inputStream) throws IOException {
@@ -317,9 +495,16 @@ public class ExcelUtils {
 		return new ByteArrayInputStream(baos.toByteArray());
 	}
 
-	public static <T> List<T> importExcel(InputStream inputStream, List<ExcelImportSetting> headers, Class<T> clazz, int rowStart, int sheetNum) throws IOException, InvalidFormatException {
-		InputStream buffInputStream = getBuffInputStream(inputStream);
-		Workbook workbook= WorkbookFactory.create(buffInputStream);
+	public static <T> List<T> importExcel(InputStream inputStream, List<ExcelImportSetting> headers, Class<T> clazz, int rowStart, int sheetNum)  {
+
+		Workbook workbook= null;
+		try {
+			workbook = getWorkBook(inputStream);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InvalidFormatException e) {
+			e.printStackTrace();
+		}
 		boolean isXSSFWorkbook = !(workbook instanceof HSSFWorkbook);
 		return null;
 	}
@@ -346,6 +531,8 @@ public class ExcelUtils {
 
 		for (int i = rowStart; i <= sheet.getLastRowNum(); i++) {
 			Row row = sheet.getRow(i);
+			if (row==null)
+				continue;
 			T target = null;
 			try {
 				target = clazz.newInstance();
@@ -356,9 +543,11 @@ public class ExcelUtils {
 				ExcelImportSetting header = headers.get(j);
 				String fieldName = header.getFieldName();
 				String fieldFormat = header.getFieldFormat();
-				Class[] methodParamTypes = getMethodParamTypes(target, "set" + StringUtils.capitalize(fieldName));
+				Class[] methodParamTypes = getMethodParamTypes(target, "set" + capitalize(fieldName));
 				String methodType = methodParamTypes[0].getName();
 				Cell cell = row.getCell(j);
+				if (cell==null)
+					continue;
 				String cellValue = getCellValue(cell);
 				cellValue = trim(cellValue);
 				switch (methodType) {
@@ -549,7 +738,281 @@ public class ExcelUtils {
 
 	}
 
+
+
+	public static class InnerExcelBean{
+
+		 private String fA;
+		 private String fB;
+		 private String fC;
+		 private String fD;
+		 private String fE;
+		 private String fF;
+		 private String fG;
+		 private String fH;
+		 private String fI;
+		 private String fJ;
+		 private String fK;
+		 private String fL;
+		 private String fM;
+		 private String fN;
+		 private String fO;
+		 private String fP;
+		 private String fQ;
+		 private String fR;
+		 private String fS;
+		 private String fT;
+		 private String fU;
+		 private String fV;
+		 private String fW;
+		 private String fX;
+		 private String fY;
+		 private String fZ;
+
+		public String getFA() {
+			return fA;
+		}
+
+		public void setFA(String fA) {
+			this.fA = fA;
+		}
+
+		public String getFB() {
+			return fB;
+		}
+
+		public void setFB(String fB) {
+			this.fB = fB;
+		}
+
+		public String getFC() {
+			return fC;
+		}
+
+		public void setFC(String fC) {
+			this.fC = fC;
+		}
+
+		public String getFD() {
+			return fD;
+		}
+
+		public void setFD(String fD) {
+			this.fD = fD;
+		}
+
+		public String getFE() {
+			return fE;
+		}
+
+		public void setFE(String fE) {
+			this.fE = fE;
+		}
+
+		public String getFF() {
+			return fF;
+		}
+
+		public void setFF(String fF) {
+			this.fF = fF;
+		}
+
+		public String getFG() {
+			return fG;
+		}
+
+		public void setFG(String fG) {
+			this.fG = fG;
+		}
+
+		public String getFH() {
+			return fH;
+		}
+
+		public void setFH(String fH) {
+			this.fH = fH;
+		}
+
+		public String getFI() {
+			return fI;
+		}
+
+		public void setFI(String fI) {
+			this.fI = fI;
+		}
+
+		public String getFJ() {
+			return fJ;
+		}
+
+		public void setFJ(String fJ) {
+			this.fJ = fJ;
+		}
+
+		public String getFK() {
+			return fK;
+		}
+
+		public void setFK(String fK) {
+			this.fK = fK;
+		}
+
+		public String getFL() {
+			return fL;
+		}
+
+		public void setFL(String fL) {
+			this.fL = fL;
+		}
+
+		public String getFM() {
+			return fM;
+		}
+
+		public void setFM(String fM) {
+			this.fM = fM;
+		}
+
+		public String getFN() {
+			return fN;
+		}
+
+		public void setFN(String fN) {
+			this.fN = fN;
+		}
+
+		public String getFO() {
+			return fO;
+		}
+
+		public void setFO(String fO) {
+			this.fO = fO;
+		}
+
+		public String getFP() {
+			return fP;
+		}
+
+		public void setFP(String fP) {
+			this.fP = fP;
+		}
+
+		public String getFQ() {
+			return fQ;
+		}
+
+		public void setFQ(String fQ) {
+			this.fQ = fQ;
+		}
+
+		public String getFR() {
+			return fR;
+		}
+
+		public void setFR(String fR) {
+			this.fR = fR;
+		}
+
+		public String getFS() {
+			return fS;
+		}
+
+		public void setFS(String fS) {
+			this.fS = fS;
+		}
+
+		public String getFT() {
+			return fT;
+		}
+
+		public void setFT(String fT) {
+			this.fT = fT;
+		}
+
+		public String getFU() {
+			return fU;
+		}
+
+		public void setFU(String fU) {
+			this.fU = fU;
+		}
+
+		public String getFV() {
+			return fV;
+		}
+
+		public void setFV(String fV) {
+			this.fV = fV;
+		}
+
+		public String getFW() {
+			return fW;
+		}
+
+		public void setFW(String fW) {
+			this.fW = fW;
+		}
+
+		public String getFX() {
+			return fX;
+		}
+
+		public void setFX(String fX) {
+			this.fX = fX;
+		}
+
+		public String getFY() {
+			return fY;
+		}
+
+		public void setFY(String fY) {
+			this.fY = fY;
+		}
+
+		public String getFZ() {
+			return fZ;
+		}
+
+		public void setFZ(String fZ) {
+			this.fZ = fZ;
+		}
+
+		@Override
+		public String toString() {
+			return "ExcelBean{" +
+					"fA='" + fA + '\'' +
+					", fB='" + fB + '\'' +
+					", fC='" + fC + '\'' +
+					", fD='" + fD + '\'' +
+					", fE='" + fE + '\'' +
+					", fF='" + fF + '\'' +
+					", fG='" + fG + '\'' +
+					", fH='" + fH + '\'' +
+					", fI='" + fI + '\'' +
+					", fJ='" + fJ + '\'' +
+					", fK='" + fK + '\'' +
+					", fL='" + fL + '\'' +
+					", fM='" + fM + '\'' +
+					", fN='" + fN + '\'' +
+					", fO='" + fO + '\'' +
+					", fP='" + fP + '\'' +
+					", fQ='" + fQ + '\'' +
+					", fR='" + fR + '\'' +
+					", fS='" + fS + '\'' +
+					", fT='" + fT + '\'' +
+					", fU='" + fU + '\'' +
+					", fV='" + fV + '\'' +
+					", fW='" + fW + '\'' +
+					", fX='" + fX + '\'' +
+					", fY='" + fY + '\'' +
+					", fZ='" + fZ + '\'' +
+					'}';
+		}
+	}
+
+
 	public static class ExcelExportSetting {
+
 		private String headName;
 		private String fieldName;
 		private Integer width;
@@ -629,7 +1092,7 @@ public class ExcelUtils {
 			return null;
 		}
 
-		String methodName="set"+ StringUtils.capitalize(fieldName);
+		String methodName="set"+ capitalize(fieldName);
 		try {
 			Method method = target.getClass().getDeclaredMethod(methodName, getMethodParamTypes(target, methodName));
 			method.invoke(target, value);
@@ -665,7 +1128,7 @@ public class ExcelUtils {
 		if (fieldName == null || fieldName.trim().equals("")) {
 			return null;
 		}
-		String methodName = "get" + StringUtils.capitalize(fieldName);
+		String methodName = "get" + capitalize(fieldName);
 		Object returnValue = null;
 		try {
 			Method method = target.getClass().getDeclaredMethod(methodName);
@@ -674,6 +1137,46 @@ public class ExcelUtils {
 			e.printStackTrace();
 		}
 		return returnValue;
+	}
+	public static String capitalize(final String str) {
+		int strLen;
+		if (str == null || (strLen = str.length()) == 0) {
+			return str;
+		}
+
+		final int firstCodepoint = str.codePointAt(0);
+		final int newCodePoint = Character.toTitleCase(firstCodepoint);
+		if (firstCodepoint == newCodePoint) {
+			// already capitalized
+			return str;
+		}
+
+		final int newCodePoints[] = new int[strLen]; // cannot be longer than the char array
+		int outOffset = 0;
+		newCodePoints[outOffset++] = newCodePoint; // copy the first codepoint
+		for (int inOffset = Character.charCount(firstCodepoint); inOffset < strLen; ) {
+			final int codepoint = str.codePointAt(inOffset);
+			newCodePoints[outOffset++] = codepoint; // copy the remaining ones
+			inOffset += Character.charCount(codepoint);
+		}
+		return new String(newCodePoints, 0, outOffset);
+	}
+
+	public static void main(String[] args) throws FileNotFoundException {
+		InputStream resourceAsStream = ExcelUtils.class.getClassLoader().getResourceAsStream("test.xls");
+		//List<UserBean> userBeans = importExcel(new String[]{"name"}, resourceAsStream, UserBean.class);
+		List<InnerExcelBean> innerExcelBeans = importAndSaveExcel(new File("D:\\myproject\\demo_backend\\src\\main\\resources\\test.xlsx"), null, source -> {
+			System.out.println(JSON.toJSONString(source));
+			if (source != null) {
+				InnerExcelBean innerExcelBean = new InnerExcelBean();
+				innerExcelBean.setFB("fb");
+				innerExcelBean.setFE("税款负担方式");
+				source.add(innerExcelBean);
+			}
+		},false);
+		System.out.println(JSON.toJSONString(innerExcelBeans));
+		//System.out.println(JSON.toJSONString(userBeans));
+
 	}
 
 }
