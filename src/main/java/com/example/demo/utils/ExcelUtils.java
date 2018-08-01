@@ -1,7 +1,7 @@
 package com.example.demo.utils;
 
 import com.alibaba.fastjson.JSON;
-import org.apache.poi.hssf.usermodel.HSSFRichTextString;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
@@ -343,8 +343,8 @@ public class ExcelUtils {
 							bodyCell.setCellValue((Double) value);
 						} else if (value instanceof Integer || value instanceof Long || value instanceof Short || value instanceof Float) {
 							bodyCell.setCellValue(Double.parseDouble(value.toString()));
-						} else if (value instanceof HSSFRichTextString) {
-							bodyCell.setCellValue((HSSFRichTextString) value);
+						} else if (value instanceof RichTextString) {
+							bodyCell.setCellValue((RichTextString) value);
 						} else {
 							bodyCell.setCellValue(value.toString());
 						}
@@ -364,7 +364,17 @@ public class ExcelUtils {
 		}
 	}
 
+
+	public static List<InnerExcelBean> importExcel(File file) {
+		return importAndSaveExcel(file,null,null,false);
+
+	}
+
 	public static List<InnerExcelBean> importAndSaveExcel(File file,char[] lines,ImportListHandler handler,boolean... save) {
+		return importAndSaveExcel(file,file,lines,handler,save);
+	}
+
+	public static List<InnerExcelBean> importAndSaveExcel(File inputFile,File outputFile,char[] lines,ImportListHandler handler,boolean... save) {
 		boolean isSave=true;
 		if (save!=null&&save.length>0){
 			isSave=save[0];
@@ -379,10 +389,10 @@ public class ExcelUtils {
 		InputStream inputStream=null;
 		OutputStream outputStream=null;
 		try {
-			 inputStream=new FileInputStream(file);
-			 workbook= getWorkBook(inputStream);
+			inputStream=new FileInputStream(inputFile);
+			workbook= getWorkBook(inputStream);
 			if (isSave) {
-				outputStream = new FileOutputStream(file);
+				outputStream = new FileOutputStream(outputFile);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -400,6 +410,7 @@ public class ExcelUtils {
 		return innerExcelBeans;
 
 	}
+
 
 
 	public static List<InnerExcelBean> importAndSaveExcel(InputStream inputStream, OutputStream outputStream,char[] lines,ImportListHandler handler,boolean... save) {
@@ -1163,19 +1174,28 @@ public class ExcelUtils {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
-		InputStream resourceAsStream = ExcelUtils.class.getClassLoader().getResourceAsStream("test.xls");
-		//List<UserBean> userBeans = importExcel(new String[]{"name"}, resourceAsStream, UserBean.class);
+		List<InnerExcelBean> innerExcelBeans1 = importExcel(new File("D:\\myproject\\demo_backend\\src\\main\\resources\\testx.xls"));
+		Map<String,InnerExcelBean> map=new HashMap<>();
+		for (InnerExcelBean innerExcelBean:innerExcelBeans1){
+			if (StringUtils.isNotBlank(innerExcelBean.getFD())){
+				map.put(innerExcelBean.getFD(),innerExcelBean);
+			}
+		}
+		System.out.println(JSON.toJSONString(innerExcelBeans1));
 		List<InnerExcelBean> innerExcelBeans = importAndSaveExcel(new File("D:\\myproject\\demo_backend\\src\\main\\resources\\test.xlsx"), null, source -> {
 			System.out.println(JSON.toJSONString(source));
 			if (source != null) {
-				InnerExcelBean innerExcelBean = new InnerExcelBean();
-				innerExcelBean.setFB("fb");
-				innerExcelBean.setFE("税款负担方式");
-				source.add(innerExcelBean);
+				for (InnerExcelBean item:source){
+					InnerExcelBean innerExcelBean = map.get(item.getFD());
+					if (innerExcelBean !=null){
+						item.setFB(innerExcelBean.getFB());
+					}
+				}
 			}
-		},false);
+		},true);
 		System.out.println(JSON.toJSONString(innerExcelBeans));
-		//System.out.println(JSON.toJSONString(userBeans));
+
+
 
 	}
 
